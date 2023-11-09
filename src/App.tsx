@@ -14,6 +14,7 @@ import './App.css'
 import createTheme from '@uiw/codemirror-themes';
 import { tags as t } from '@lezer/highlight';
 import * as eslint from "eslint-linter-browserify";
+import { Config } from '@codemirror/language';
 
 
 
@@ -23,9 +24,10 @@ const config = {
     ecmaVersion: 2019,
     sourceType: "module",
     ecmaFeatures: {
-      jsx: true
+      jsx: true,
     }
   },
+ 
   env: {
     browser: true,
     node: true
@@ -37,7 +39,7 @@ const config = {
     "linebreak-style": ["error", "unix"],
     "no-debugger": ["error"],
     // quotes: ["error", "double"],
-    semi: ["error", "always"],
+    // semi: ["error", "always"],
     // override configuration set by extending "eslint:recommended"
     "no-empty": "warn",
     "no-undef": ["error"],
@@ -53,7 +55,7 @@ const myTheme = createTheme({
   theme: 'dark',
   settings: {
     selection: '#1be8ffc3',
-    selectionMatch: '#1bff4c',
+    selectionMatch: '#1bff4c56',
     caret: '#1be7ff',
     gutterBorder: '#1be7ff',
     lineHighlight: '#1be8ff3b',
@@ -416,9 +418,7 @@ function App() {
             yCollab(yText, provider.current.awareness, { undoManager }),
             languageModeState,
             lintGutter(),
-            linter(esLint(new eslint.Linter({
-              
-            }),config))
+            linter(esLint(new eslint.Linter(),config))
             // mentions(users),
             ]}
           />
@@ -707,3 +707,4 @@ export default App;
 //     ),
 //   },
 // };
+
