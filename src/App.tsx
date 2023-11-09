@@ -20,14 +20,14 @@ import { tags as t } from '@lezer/highlight';
 const myTheme = createTheme({
   theme: 'dark',
   settings: {
-    selection: '#1be7ff',
-    selectionMatch: '#1be7ff',
+    selection: '#1be8ffc3',
+    selectionMatch: '#1bff4c',
     caret: '#1be7ff',
     gutterBorder: '#1be7ff',
     lineHighlight: '#1be8ff3b',
   },
     styles: [
-    { tag: t.comment, color: '#787b80' },
+    { tag: t.comment, color: '#7ea8fc9b' },
     { tag: t.definition(t.typeName), color: '#194a7b' },
     { tag: t.typeName, color: '#2f8eec' },
     { tag: t.tagName, color: '#5ed75e' },
@@ -46,6 +46,8 @@ const myTheme = createTheme({
     { tag: t.attributeName, color: 'orange'},
     { tag: t.docString, color: '#fff'},
     { tag: t.content, color: '#fee'},
+    { tag: t.bool, color: '#ae04f7ffd'},
+    
     
   ],
 })
