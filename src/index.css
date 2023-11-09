@@ -4,19 +4,3 @@
 
 
 
-.cm-wrap { 
-  height: 100%;
-}
-.cm-scroller {
-  overflow: auto;
-}
-
-.CodeMirror {
-  height: 300px;
-  font-size: 14px;
-  line-height: 1.4;
-  font-family: monospace;
-  color: #000;
-  background: #fff;
-  -webkit-tap-highlight-color: transparent;
-}

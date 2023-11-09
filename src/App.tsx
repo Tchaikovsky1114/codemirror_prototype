@@ -1,14 +1,15 @@
 import { autoCloseTags, javascript } from '@codemirror/lang-javascript'
 import { mentions } from '@uiw/codemirror-extensions-mentions';
 import { xcodeDark } from '@uiw/codemirror-themes-all'
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
 import { yCollab } from 'y-codemirror.next';
-import { WebrtcProvider } from 'y-webrtc'
+
 import { WebsocketProvider } from 'y-websocket';
 
+import './App.css'
 
 const users = [{ label: '@Walter White' },{ label: '@유제환' },{ label: '@김명성' },{ label: '@오은석' },];
 
@@ -33,90 +34,89 @@ function App() {
   const [codeMirrorText, setCodeMirrorText] = useState('');
   const [yText, setYText] = useState<Y.Text>(yt);
   const [undoManager, setUndoManager] = useState<Y.UndoManager>();
-  const [provider, setProvider] = useState<WebrtcProvider>();
-  const wsRef = useRef<WebSocket>();
+  const [onTypescript, setOnTypescript] = useState(false);
+  const provider = useRef<WebsocketProvider>();
+  // const wsRef = useRef<WebSocket>();
   
   const onChange = (val:string) => {
     setCodeMirrorText(val)
   }
 
-  useEffect(() => {
-    wsRef.current = new WebSocket('ws://localhost:8080');
-    
-    // wsRef.current.onopen = () => {
-    //   setCodeMirrorText(`<html>\n  <body>\n    Hello World\n  </body>\n</html>`); 
-    // }
-    // 서버에 접속하면, 서버에게 자신의 색상을 전달한다.
-    
+  const onClickToggleTypescript = () => {
+    setOnTypescript(!onTypescript)
+  }
 
-    wsRef.current.onmessage = (event) => {
-      // setCodeMirrorText(event.data.codemirrorText);
-      // console.log(JSON.parse(event.data))
-      const data = JSON.parse(event.data);
-      console.log(data.codemirrorText)
-      const message = data.codemirrorText;
-      if(message !== undefined && message !== null){
-        console.log(message);
-      setCodeMirrorText(message);
-      }
-    }
+  // 192.168.0.73
+
+  // useEffect(() => {
+  //   wsRef.current = new WebSocket('ws://192.168.0.86:8080');
+
+
+  //   wsRef.current.onmessage = (event) => {
+  //     // const data = JSON.parse(event.data);
+  //     // const message = data.codemirrorText;
+  //     // if(message !== undefined && message !== null){
+  //     // setCodeMirrorText(message);
+  //     // }
+  //   }
+  // },[])
+
+  useEffect(() => {
+     provider.current = new WebsocketProvider(
+      'ws://192.168.0.86:8080',
+      'codemirror1234',
+      yDoc
+    )
+    
+    
   },[])
 
   useEffect(() => {
-    setProvider( new WebrtcProvider('codemirror'+ Math.random().toString(36).substring(2, 15), yDoc)
-    );
-  },[])
-
-  useEffect(() => {
-      
+    if(!provider.current) return;
     setUndoManager(new Y.UndoManager(yText));
-    setYText(yText);
+    // setYText(yText);
     yText.observe((event, transaction) => {
-      // console.log({event, transaction, yText})
-      // console.log(yText.toString()); // 새로운 텍스트를 콘솔에 출력하고, 
-      // 새로운 텍스트를 코드미러에 적용
-      // 웹소켓을 통해 다른 사용자에게도 새로운 텍스트를 전달한다.
-      setCodeMirrorText(yText.toString()) 
+      const text = yText.toString();
+      
+      // console.log(event,transaction,yText);
+
+      console.log(text);
     })
     
 
-    provider?.on('', (event:any) => {
-      console.log('hello from provider', event)
-    });
+    // provider.current.on('', (event:any) => {
+    //   console.log('hello from provider', event)
+    // });
 
-    provider?.awareness.setLocalStateField('user', {
-      name: 'Anonymous ' + Math.floor(Math.random() * 100),
-      color: userColor.color,
-      colorLight: userColor.light
-    });
+    // provider.current.awareness.setLocalStateField('user', {
+    //   name: 'Anonymous ' + Math.floor(Math.random() * 100),
+    //   color: userColor.color,
+    //   colorLight: userColor.light
+    // });
+    
+    
 
 
-    return () => {
-      provider?.disconnect();
-    }
+    // return () => {
+    //   provider.disconnect();
+    // }
   },[provider,yText])
 
 
-  useEffect(() => {
-    if(yText && yText.toString() !== codeMirrorText) {
-      yText.applyDelta([
-        yText.length > 0 ? {delete: yText.length} : {}, // 콘텐츠가 있으면 전부 삭제하고
-        {insert: codeMirrorText} // 새로운 콘텐츠를 삽입
-      ]);
-    }
-  },[yText, codeMirrorText])
-
-  useEffect(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(codeMirrorText);
-    }
-  }, [codeMirrorText]);
+  // useEffect(() => {
+  //   if(yText && yText.toString() !== codeMirrorText) {
+  //     yText.applyDelta([
+  //       yText.length > 0 ? {delete: yText.length} : {}, // 콘텐츠가 있으면 전부 삭제하고
+  //       {insert: codeMirrorText} // 새로운 콘텐츠를 삽입
+  //     ]);
+  //   }
+  // },[yText, codeMirrorText])
 
   // useEffect(() => {
-  //   setInterval(() => {
-  //     setCodeMirrorText((prev) => prev + 'a\n' )
-  //   },200)
-  // },[])
+  //   if (wsRef.current?.readyState === WebSocket.OPEN) {
+  //     wsRef.current.send(codeMirrorText);
+  //   }
+  // }, [codeMirrorText]);
 
   return(
   <>
@@ -127,7 +127,11 @@ function App() {
   <div className="w-full bg-[#292A30] min-h-[100vh] flex">
   <aside className="w-20 h-full min-h-[100vh] bg-gray-700 flex flex-col justify-between items-center gap-4 py-20">
     <div className="flex flex-col gap-8">
-      <div className="text-white">아이콘</div>
+      <div className="text-white">
+        <button
+          onClick={onClickToggleTypescript}
+        >타입스크립트 on/off</button>
+      </div>
       <div className="text-white">아이콘</div>
       <div className="text-white">아이콘</div>
     </div>
@@ -144,8 +148,10 @@ function App() {
       
       <div className="border border-slate-700 rounded-lg overflow-scroll">
         {
-          (yText && provider && provider.awareness && undoManager) ?
+          provider.current &&
+          (yText && provider && provider.current.awareness && undoManager) ?
           <CodeMirror
+          
           // ref={codeMirrorRef || null}
           value={codeMirrorText}
           onChange={onChange}
@@ -153,21 +159,26 @@ function App() {
           aria-setsize={1}
           height="500px"
           basicSetup={{
-            allowMultipleSelections: true,
+            
             closeBrackets: true,
             foldGutter: true,
             dropCursor: true,
             indentOnInput: true,
-            syntaxHighlighting: true,
+            // syntaxHighlighting: true,
             autocompletion: true,
           }}
           extensions={[
+            basicSetup({
+              completionKeymap: true,
+              foldGutter: true,
+
+            }),
             autoCloseTags,
-            yCollab(yText, provider.awareness, { undoManager }),
-            javascript({jsx: true}),
+            yCollab(yText, provider.current.awareness, { undoManager }),
+            
+            javascript({jsx: true,typescript: onTypescript}),
             mentions(users),
             ]
-      
           }
           />
           : <div>로딩중</div>
