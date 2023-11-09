@@ -28,14 +28,14 @@ const myTheme = createTheme({
   },
     styles: [
     { tag: t.comment, color: '#7ea8fc9b' },
-    { tag: t.definition(t.typeName), color: '#194a7b' },
+    { tag: t.definition(t.typeName), color: '#2b89e7' },
     { tag: t.typeName, color: '#2f8eec' },
     { tag: t.tagName, color: '#5ed75e' },
     { tag: t.variableName, color: '#72b2f1' },
     { tag: t.angleBracket, color: '#F000C0'},
     { tag: t.angleBracket, color: '#c7c7c7'},
     { tag: t.keyword, color: '#F000C0', fontWeight: 'bold'},
-    { tag: t.bracket, color: '#f0d400bb'},
+    { tag: t.bracket, color: '#9ebc67d3'},
     { tag: t.string, color: '#fff'},
     { tag: t.operator, color: '#fff'},
     { tag: t.punctuation, color: '#ffffff'},
@@ -46,7 +46,7 @@ const myTheme = createTheme({
     { tag: t.attributeName, color: 'orange'},
     { tag: t.docString, color: '#fff'},
     { tag: t.content, color: '#fee'},
-    { tag: t.bool, color: '#ae04f7ffd'},
+    { tag: t.bool, color: '#ffb700', fontWeight: 'bold'},
     
     
   ],
