@@ -5,12 +5,18 @@ import { mentions } from '@uiw/codemirror-extensions-mentions';
 import CodeMirror, { basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
+import { CompletionContext, autocompletion } from "@codemirror/autocomplete";
+
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
 import { WebsocketProvider } from 'y-websocket';
 import './App.css'
 import createTheme from '@uiw/codemirror-themes';
 import { tags as t } from '@lezer/highlight';
+
+
+
+
 const myTheme = createTheme({
   theme: 'dark',
   settings: {
@@ -23,8 +29,8 @@ const myTheme = createTheme({
     styles: [
     { tag: t.comment, color: '#787b80' },
     { tag: t.definition(t.typeName), color: '#194a7b' },
-    { tag: t.typeName, color: '#194a7b' },
-    { tag: t.tagName, color: '#008a02' },
+    { tag: t.typeName, color: '#2f8eec' },
+    { tag: t.tagName, color: '#5ed75e' },
     { tag: t.variableName, color: '#72b2f1' },
     { tag: t.angleBracket, color: '#F000C0'},
     { tag: t.angleBracket, color: '#c7c7c7'},
@@ -36,6 +42,10 @@ const myTheme = createTheme({
     { tag: t.className, color: 'yellow'},
     { tag: t.namespace, color: 'yellow'},
     { tag: t.number, color: 'orange'},
+    { tag: t.quote, color: 'orange'},
+    { tag: t.attributeName, color: 'orange'},
+    { tag: t.docString, color: '#fff'},
+    { tag: t.content, color: '#fee'},
     
   ],
 })
@@ -64,6 +74,187 @@ const languageMode = {
   python: python(),
 }
 
+
+
+const javascriptKeywords = [
+  'abstract', 'arguments', 'await', 'boolean',
+  'break', 'byte', 'case', 'catch',
+  'char', 'class', 'const', 'continue',
+  'debugger', 'default', 'delete', 'do',
+  'double', 'else', 'enum', 'eval',
+  'export', 'extends', 'false', 'final',
+  'finally', 'float', 'for', 'function',
+  'goto', 'if', 'implements', 'import',
+  'in', 'instanceof', 'int', 'interface',
+  'let', 'long', 'native', 'new',
+  'null', 'package', 'private', 'protected',
+  'public', 'return', 'short', 'static',
+  'super', 'switch', 'synchronized', 'this',
+  'throw', 'throws', 'transient', 'true',
+  'try', 'typeof', 'var', 'void',
+  'volatile', 'while', 'with', 'yield'
+];
+const javaKeywords = [
+  'abstract', 'assert', 'boolean', 'break',
+  'byte', 'case', 'catch', 'char',
+  'class', 'const', 'continue', 'default',
+  'do', 'double', 'else', 'enum',
+  'extends', 'final', 'finally', 'float',
+  'for', 'goto', 'if', 'implements',
+  'import', 'instanceof', 'int', 'interface',
+  'long', 'native', 'new', 'package',
+  'private', 'protected', 'public', 'return',
+  'short', 'static', 'strictfp', 'super',
+  'switch', 'synchronized', 'this', 'throw',
+  'throws', 'transient', 'try', 'void',
+  'volatile', 'while', 'true', 'false', 'null'
+];
+const pythonKeywords = [
+  'and', 'as', 'assert', 'break',
+  'class', 'continue', 'def', 'del',
+  'elif', 'else', 'except', 'False',
+  'finally', 'for', 'from', 'global',
+  'if', 'import', 'in', 'is',
+  'lambda', 'None', 'nonlocal', 'not',
+  'or', 'pass', 'raise', 'return',
+  'True', 'try', 'while', 'with',
+  'yield'
+];
+
+
+const completions = [
+  ...javascriptKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "JavaScript keyword" })),
+  ...javaKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Java keyword" })),
+  ...pythonKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Python keyword" })),
+  { label : "import", type: "keyword", info: "import"},
+  { label: "className", type: "attributeName", info: "HTML class attribute" },
+  { label: "span", type: "tagName", info:'html tag'},
+  { label: "a", type: "tagName", info: "HTML anchor tag" },
+  { label: "abbr", type: "tagName", info: "HTML abbreviation tag" },
+  { label: "address", type: "tagName", info: "HTML address tag" },
+  { label: "area", type: "tagName", info: "HTML area tag" },
+  { label: "article", type: "tagName", info: "HTML article tag" },
+  { label: "aside", type: "tagName", info: "HTML aside tag" },
+  { label: "audio", type: "tagName", info: "HTML audio tag" },
+  { label: "b", type: "tagName", info: "HTML bold tag" },
+  { label: "base", type: "tagName", info: "HTML base tag" },
+  { label: "bdi", type: "tagName", info: "HTML bdi tag" },
+  { label: "bdo", type: "tagName", info: "HTML bdo tag" },
+  { label: "blockquote", type: "tagName", info: "HTML blockquote tag" },
+  { label: "body", type: "tagName", info: "HTML body tag" },
+  { label: "br", type: "tagName", info: "HTML line break tag" },
+  { label: "button", type: "tagName", info: "HTML button tag" },
+  { label: "canvas", type: "tagName", info: "HTML canvas tag" },
+  { label: "caption", type: "tagName", info: "HTML table caption tag" },
+  { label: "cite", type: "tagName", info: "HTML citation tag" },
+  { label: "code", type: "tagName", info: "HTML code tag" },
+  { label: "col", type: "tagName", info: "HTML column tag" },
+  { label: "colgroup", type: "tagName", info: "HTML column group tag" },
+  { label: "data", type: "tagName", info: "HTML data tag" },
+  { label: "datalist", type: "tagName", info: "HTML datalist tag" },
+  { label: "dd", type: "tagName", info: "HTML description detail tag" },
+  { label: "del", type: "tagName", info: "HTML deleted text tag" },
+  { label: "details", type: "tagName", info: "HTML details tag" },
+  { label: "dfn", type: "tagName", info: "HTML definition term tag" },
+  { label: "dialog", type: "tagName", info: "HTML dialog tag" },
+  { label: "div", type: "tagName", info: "HTML division tag" },
+  { label: "dl", type: "tagName", info: "HTML description list tag" },
+  { label: "dt", type: "tagName", info: "HTML description term tag" },
+  { label: "em", type: "tagName", info: "HTML emphasized text tag" },
+  { label: "embed", type: "tagName", info: "HTML embed tag" },
+  { label: "fieldset", type: "tagName", info: "HTML fieldset tag" },
+  { label: "figure", type: "tagName", info: "HTML figure tag" },
+  { label: "figcaption", type: "tagName", info: "HTML figure caption tag" },
+  { label: "footer", type: "tagName", info: "HTML footer tag" },
+  { label: "form", type: "tagName", info: "HTML form tag" },
+  { label: "h1", type: "tagName", info: "HTML heading 1 tag" },
+  { label: "h2", type: "tagName", info: "HTML heading 2 tag" },
+  { label: "h3", type: "tagName", info: "HTML heading 3 tag" },
+  { label: "h4", type: "tagName", info: "HTML heading 4 tag" },
+  { label: "h5", type: "tagName", info: "HTML heading 5 tag" },
+  { label: "h6", type: "tagName", info: "HTML heading 6 tag" },
+  { label: "head", type: "tagName", info: "HTML head tag" },
+  { label: "header", type: "tagName", info: "HTML header tag" },
+  { label: "hgroup", type: "tagName", info: "HTML heading group tag" },
+  { label: "hr", type: "tagName", info: "HTML horizontal rule tag" },
+  { label: "html", type: "tagName", info: "HTML html tag" },
+  { label: "i", type: "tagName", info: "HTML italic tag" },
+  { label: "iframe", type: "tagName", info: "HTML inline frame tag" },
+  { label: "img", type: "tagName", info: "HTML image tag" },
+  { label: "input", type: "tagName", info: "HTML input tag" },
+  { label: "ins", type: "tagName", info: "HTML inserted text tag" },
+  { label: "kbd", type: "tagName", info: "HTML keyboard input tag" },
+  { label: "label", type: "tagName", info: "HTML label tag" },
+  { label: "legend", type: "tagName", info: "HTML legend tag" },
+  { label: "li", type: "tagName", info: "HTML list item tag" },
+  { label: "link", type: "tagName", info: "HTML link tag" },
+  { label: "main", type: "tagName", info: "HTML main tag" },
+  { label: "map", type: "tagName", info: "HTML map tag" },
+  { label: "mark", type: "tagName", info: "HTML marked text tag" },
+  { label: "menu", type: "tagName", info: "HTML menu tag" },
+  { label: "meta", type: "tagName", info: "HTML meta tag" },
+  { label: "meter", type: "tagName", info: "HTML meter tag" },
+  { label: "nav", type: "tagName", info: "HTML navigation tag" },
+  { label: "noscript", type: "tagName", info: "HTML noscript tag" },
+  { label: "object", type: "tagName", info: "HTML object tag" },
+  { label: "ol", type: "tagName", info: "HTML ordered list tag" },
+  { label: "optgroup", type: "tagName", info: "HTML option group tag" },
+  { label: "option", type: "tagName", info: "HTML option tag" },
+  { label: "output", type: "tagName", info: "HTML output tag" },
+  { label: "p", type: "tagName", info: "HTML paragraph tag" },
+  { label: "param", type: "tagName", info: "HTML parameter tag" },
+  { label: "picture", type: "tagName", info: "HTML picture tag" },
+  { label: "pre", type: "tagName", info: "HTML preformatted text tag" },
+  { label: "progress", type: "tagName", info: "HTML progress tag" },
+  { label: "q", type: "tagName", info: "HTML quote tag" },
+  { label: "rp", type: "tagName", info: "HTML ruby parenthesis tag" },
+  { label: "rt", type: "tagName", info: "HTML ruby text tag" },
+  { label: "ruby", type: "tagName", info: "HTML ruby tag" },
+  { label: "s", type: "tagName", info: "HTML strikethrough tag" },
+  { label: "samp", type: "tagName", info: "HTML sample output tag" },
+  { label: "script", type: "tagName", info: "HTML script tag" },
+  { label: "section", type: "tagName", info: "HTML section tag" },
+  { label: "select", type: "tagName", info: "HTML select tag" },
+  { label: "small", type: "tagName", info: "HTML small text tag" },
+  { label: "source", type: "tagName", info: "HTML source tag" },
+  { label: "span", type: "tagName", info: "HTML span tag" },
+  { label: "strong", type: "tagName", info: "HTML strong tag" },
+  { label: "style", type: "tagName", info: "HTML style tag" },
+  { label: "sub", type: "tagName", info: "HTML subscript tag" },
+  { label: "summary", type: "tagName", info: "HTML summary tag" },
+  { label: "sup", type: "tagName", info: "HTML superscript tag" },
+  { label: "table", type: "tagName", info: "HTML table tag" },
+  { label: "tbody", type: "tagName", info: "HTML table body tag" },
+  { label: "td", type: "tagName", info: "HTML table data cell tag" },
+  { label: "template", type: "tagName", info: "HTML template tag" },
+  { label: "textarea", type: "tagName", info: "HTML text area tag" },
+  { label: "tfoot", type: "tagName", info: "HTML table footer tag" },
+  { label: "th", type: "tagName", info: "HTML table header cell tag" },
+  { label: "thead", type: "tagName", info: "HTML table header tag" },
+  { label: "time", type: "tagName", info: "HTML time tag" },
+  { label: "title", type: "tagName", info: "HTML title tag" },
+  { label: "tr", type: "tagName", info: "HTML table row tag" },
+  { label: "track", type: "tagName", info: "HTML track tag" },
+  { label: "u", type: "tagName", info: "HTML underline tag" },
+  { label: "ul", type: "tagName", info: "HTML unordered list tag" },
+  { label: "var", type: "tagName", info: "HTML variable tag" },
+  { label: "video", type: "tagName", info: "HTML video tag" },
+  { label: "wbr", type: "tagName", info: "HTML word break opportunity tag" }
+];
+// { label: "jaehwan", type: "constant", info: "으으 방구쟁이" },
+//   { label: "password", type: "variable" }
+function myCompletions(context: CompletionContext) {
+  let before = context.matchBefore(/\w+/);
+  // If completion wasn't explicitly started and there
+  // is no word before the cursor, don't open completions.
+  if (!context.explicit && !before) return null;
+  return {
+    from: before ? before.from : context.pos,
+    options: completions,
+    validFor: /^\w*$/
+  };
+}
+
 function App() {
   // const [editorSettings, setEditorSettings] = useState(EDITOR_SETTINGS);
   const [codeMirrorText, setCodeMirrorText] = useState('');
@@ -85,6 +276,9 @@ function App() {
   const onChangeLanguageMode = (val: 'java' | 'javascript' | 'python') => {
     setLanguageModeState(languageMode[val])
   }
+
+
+
 
   useEffect(() => {
     
@@ -180,7 +374,7 @@ function App() {
             indentOnInput: true,
             autocompletion: true,
           }}
-          extensions={[
+          extensions={[autocompletion({ override: [myCompletions] }),
             basicSetup({
               completionKeymap: true,
               foldGutter: true,
@@ -188,9 +382,8 @@ function App() {
             autoCloseTags,
             yCollab(yText, provider.current.awareness, { undoManager }),
             languageModeState,
-            mentions(users),
-            ]
-          }
+            // mentions(users),
+            ]}
           />
           : <div>로딩중</div>
         }
