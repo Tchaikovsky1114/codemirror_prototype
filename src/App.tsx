@@ -1,15 +1,44 @@
 import { autoCloseTags, javascript } from '@codemirror/lang-javascript'
+import { java } from '@codemirror/lang-java'
+import { python } from '@codemirror/lang-python'
 import { mentions } from '@uiw/codemirror-extensions-mentions';
-import { xcodeDark } from '@uiw/codemirror-themes-all'
 import CodeMirror, { basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
+import { yCollab } from 'y-codemirror.next';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
-import { yCollab } from 'y-codemirror.next';
-
 import { WebsocketProvider } from 'y-websocket';
-
 import './App.css'
+import createTheme from '@uiw/codemirror-themes';
+import { tags as t } from '@lezer/highlight';
+const myTheme = createTheme({
+  theme: 'dark',
+  settings: {
+    selection: '#1be7ff',
+    selectionMatch: '#1be7ff',
+    caret: '#1be7ff',
+    gutterBorder: '#1be7ff',
+    lineHighlight: '#1be8ff3b',
+  },
+    styles: [
+    { tag: t.comment, color: '#787b80' },
+    { tag: t.definition(t.typeName), color: '#194a7b' },
+    { tag: t.typeName, color: '#194a7b' },
+    { tag: t.tagName, color: '#008a02' },
+    { tag: t.variableName, color: '#72b2f1' },
+    { tag: t.angleBracket, color: '#F000C0'},
+    { tag: t.angleBracket, color: '#c7c7c7'},
+    { tag: t.keyword, color: '#F000C0', fontWeight: 'bold'},
+    { tag: t.bracket, color: '#f0d400bb'},
+    { tag: t.string, color: '#fff'},
+    { tag: t.operator, color: '#fff'},
+    { tag: t.punctuation, color: '#ffffff'},
+    { tag: t.className, color: 'yellow'},
+    { tag: t.namespace, color: 'yellow'},
+    { tag: t.number, color: 'orange'},
+    
+  ],
+})
 
 const users = [{ label: '@Walter White' },{ label: '@유제환' },{ label: '@김명성' },{ label: '@오은석' },];
 
@@ -28,12 +57,20 @@ export const userColor = usercolors[random.uint32() % usercolors.length]
 const yDoc = new Y.Doc();
 const yt = yDoc.getText('codemirror');
 
+
+const languageMode = {
+  java: java(),
+  javascript: javascript({jsx: true}),
+  python: python(),
+}
+
 function App() {
   // const [editorSettings, setEditorSettings] = useState(EDITOR_SETTINGS);
   const [codeMirrorText, setCodeMirrorText] = useState('');
   const [yText, setYText] = useState<Y.Text>(yt);
   const [undoManager, setUndoManager] = useState<Y.UndoManager>();
   const [onTypescript, setOnTypescript] = useState(false);
+  const [languageModeState, setLanguageModeState] = useState(languageMode.javascript);
   const provider = useRef<WebsocketProvider>();
   // const wsRef = useRef<WebSocket>();
   
@@ -45,12 +82,18 @@ function App() {
     setOnTypescript(!onTypescript)
   }
 
+  const onChangeLanguageMode = (val: 'java' | 'javascript' | 'python') => {
+    setLanguageModeState(languageMode[val])
+  }
+
   useEffect(() => {
+    
      provider.current = new WebsocketProvider(
       'ws://192.168.0.86:8080',
       'codemirror1234',
       yDoc
     )
+    
   },[])
 
   useEffect(() => {
@@ -58,38 +101,21 @@ function App() {
     setUndoManager(new Y.UndoManager(yText));
     // setYText(yText);
     yText.observe((event, transaction) => {
-      
-      
-      const text = yText.toString();
-
-
-      console.log(text);
-
-      // if(!provider.current) return;
-      
-      // if (provider.current?.ws!.readyState === 1) {
-      //   provider.current.ws.onmessage = (event) => {
-      //     // convert ArrayBuffer to String
-      //     const data = new TextDecoder("utf-8").decode(event.data);
-      //     console.log(data);
-      //   }
-      // }
+      // const text = yText.toString();
     })
-
-    
-
     provider.current.awareness.setLocalStateField('user', {
-      name: 'Anonymous ' + Math.floor(Math.random() * 100),
+      name: '항구를떠도는철새' + Math.floor(Math.random() * 100),
       color: userColor.color,
       colorLight: userColor.light,
       message: '퉷!'
     });
 
-    // return () => {
-    //   provider.disconnect();
-    // }
+    return () => {
+      provider.current?.disconnect();
+    }
   },[provider,yText])
 
+  
 
   return(
   <>
@@ -98,14 +124,30 @@ function App() {
     
   </nav>
   <div className="w-full bg-[#292A30] min-h-[100vh] flex">
-  <aside className="w-20 h-full min-h-[100vh] bg-gray-700 flex flex-col justify-between items-center gap-4 py-20">
+  <aside className="w-60 h-full min-h-[100vh] bg-gray-700 flex flex-col justify-between items-center gap-4 py-20">
     <div className="flex flex-col gap-8">
       <div className="text-white">
-        <button
-          onClick={onClickToggleTypescript}
-        >타입스크립트 on/off</button>
+        <select
+          defaultValue="javascript"
+          className="w-full px-4 h-12 rounded-lg bg-[#292A30] text-white"
+          onChange={(e) => onChangeLanguageMode(e.target.value as 'java' | 'javascript' | 'python')}
+        >
+          <option value="java">자바</option>
+          <option value="javascript">자바스크립트</option>
+          <option value="python">파이썬</option>
+        </select>
       </div>
-      <div className="text-white">아이콘</div>
+      {
+        languageModeState === languageMode.javascript &&
+        <button
+          className={`text-white px-4 h-12 rounded-lg bg-[#009C72]
+          transition-all duration-300
+          ${onTypescript ? 'bg-[#009C72]' : 'bg-[#292A30]'}
+          `}
+          onClick={onClickToggleTypescript}
+        >타입스크립트
+      </button>
+      }
       <div className="text-white">아이콘</div>
     </div>
 
@@ -128,27 +170,24 @@ function App() {
           // ref={codeMirrorRef || null}
           value={codeMirrorText}
           onChange={onChange}
-          theme={xcodeDark}
+          theme={myTheme}
           aria-setsize={1}
           height="500px"
           basicSetup={{
-            
             closeBrackets: true,
             foldGutter: true,
             dropCursor: true,
             indentOnInput: true,
-            // syntaxHighlighting: true,
             autocompletion: true,
           }}
           extensions={[
             basicSetup({
               completionKeymap: true,
               foldGutter: true,
-
             }),
             autoCloseTags,
             yCollab(yText, provider.current.awareness, { undoManager }),
-            javascript({jsx: true,typescript: onTypescript}),
+            languageModeState,
             mentions(users),
             ]
           }
