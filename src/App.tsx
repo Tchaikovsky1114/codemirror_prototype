@@ -23,7 +23,6 @@ export const usercolors = [
   { color: '#8acb88', light: '#8acb8833' },
   { color: '#1be7ff', light: '#1be7ff33' }
 ]
-
 export const userColor = usercolors[random.uint32() % usercolors.length]
 
 const yDoc = new Y.Doc();
@@ -46,29 +45,12 @@ function App() {
     setOnTypescript(!onTypescript)
   }
 
-  // 192.168.0.73
-
-  // useEffect(() => {
-  //   wsRef.current = new WebSocket('ws://192.168.0.86:8080');
-
-
-  //   wsRef.current.onmessage = (event) => {
-  //     // const data = JSON.parse(event.data);
-  //     // const message = data.codemirrorText;
-  //     // if(message !== undefined && message !== null){
-  //     // setCodeMirrorText(message);
-  //     // }
-  //   }
-  // },[])
-
   useEffect(() => {
      provider.current = new WebsocketProvider(
       'ws://192.168.0.86:8080',
       'codemirror1234',
       yDoc
     )
-    
-    
   },[])
 
   useEffect(() => {
@@ -76,47 +58,38 @@ function App() {
     setUndoManager(new Y.UndoManager(yText));
     // setYText(yText);
     yText.observe((event, transaction) => {
-      const text = yText.toString();
       
-      // console.log(event,transaction,yText);
+      
+      const text = yText.toString();
+
 
       console.log(text);
+
+      // if(!provider.current) return;
+      
+      // if (provider.current?.ws!.readyState === 1) {
+      //   provider.current.ws.onmessage = (event) => {
+      //     // convert ArrayBuffer to String
+      //     const data = new TextDecoder("utf-8").decode(event.data);
+      //     console.log(data);
+      //   }
+      // }
     })
+
     
 
-    // provider.current.on('', (event:any) => {
-    //   console.log('hello from provider', event)
-    // });
-
-    // provider.current.awareness.setLocalStateField('user', {
-    //   name: 'Anonymous ' + Math.floor(Math.random() * 100),
-    //   color: userColor.color,
-    //   colorLight: userColor.light
-    // });
-    
-    
-
+    provider.current.awareness.setLocalStateField('user', {
+      name: 'Anonymous ' + Math.floor(Math.random() * 100),
+      color: userColor.color,
+      colorLight: userColor.light,
+      message: '퉷!'
+    });
 
     // return () => {
     //   provider.disconnect();
     // }
   },[provider,yText])
 
-
-  // useEffect(() => {
-  //   if(yText && yText.toString() !== codeMirrorText) {
-  //     yText.applyDelta([
-  //       yText.length > 0 ? {delete: yText.length} : {}, // 콘텐츠가 있으면 전부 삭제하고
-  //       {insert: codeMirrorText} // 새로운 콘텐츠를 삽입
-  //     ]);
-  //   }
-  // },[yText, codeMirrorText])
-
-  // useEffect(() => {
-  //   if (wsRef.current?.readyState === WebSocket.OPEN) {
-  //     wsRef.current.send(codeMirrorText);
-  //   }
-  // }, [codeMirrorText]);
 
   return(
   <>
@@ -175,7 +148,6 @@ function App() {
             }),
             autoCloseTags,
             yCollab(yText, provider.current.awareness, { undoManager }),
-            
             javascript({jsx: true,typescript: onTypescript}),
             mentions(users),
             ]
