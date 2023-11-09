@@ -1,4 +1,4 @@
-import { autoCloseTags, javascript } from '@codemirror/lang-javascript'
+import { autoCloseTags, esLint, javascript } from '@codemirror/lang-javascript'
 import { java } from '@codemirror/lang-java'
 import { python } from '@codemirror/lang-python'
 import { mentions } from '@uiw/codemirror-extensions-mentions';
@@ -6,15 +6,47 @@ import CodeMirror, { basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
 import { CompletionContext, autocompletion } from "@codemirror/autocomplete";
-
+import { linter, lintGutter } from '@codemirror/lint';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
 import { WebsocketProvider } from 'y-websocket';
 import './App.css'
 import createTheme from '@uiw/codemirror-themes';
 import { tags as t } from '@lezer/highlight';
+import * as eslint from "eslint-linter-browserify";
 
 
+
+
+const config = {
+  parserOptions: {
+    ecmaVersion: 2019,
+    sourceType: "module",
+    ecmaFeatures: {
+      jsx: true
+    }
+  },
+  env: {
+    browser: true,
+    node: true
+  },
+  extends: "eslint:recommended",
+  rules: {
+    // enable additional rules
+    // indent: ["error", 4],
+    "linebreak-style": ["error", "unix"],
+    "no-debugger": ["error"],
+    // quotes: ["error", "double"],
+    semi: ["error", "always"],
+    // override configuration set by extending "eslint:recommended"
+    "no-empty": "warn",
+    "no-undef": ["error"],
+    "no-cond-assign": ["error", "always"],
+    // disable rules from base configurations
+    "for-direction": "off",
+    
+  }
+};
 
 
 const myTheme = createTheme({
@@ -47,8 +79,7 @@ const myTheme = createTheme({
     { tag: t.docString, color: '#fff'},
     { tag: t.content, color: '#fee'},
     { tag: t.bool, color: '#ffb700', fontWeight: 'bold'},
-    
-    
+    { tag: t.propertyName, color: '#2f8eec'},
   ],
 })
 
@@ -384,6 +415,10 @@ function App() {
             autoCloseTags,
             yCollab(yText, provider.current.awareness, { undoManager }),
             languageModeState,
+            lintGutter(),
+            linter(esLint(new eslint.Linter({
+              
+            }),config))
             // mentions(users),
             ]}
           />
