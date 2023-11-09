@@ -46,12 +46,5 @@
 }
 
 .cm-completionIcon {
-  /* more pretty */
-  display: inline-block;
-  width: .2rem;
-  height: 1.2rem;
-  /* linear-gradient purple pink deepblue */
-  background: linear-gradient(90deg, #ff00ff, #9d47ee, #1aff00);
-  border-radius: 9999px;
-  margin-right: 1rem;
+  margin-right: .5rem;
 }
