@@ -1,20 +1,18 @@
 import { autoCloseTags, esLint, javascript } from '@codemirror/lang-javascript'
 import { java } from '@codemirror/lang-java'
 import { python } from '@codemirror/lang-python'
-import { mentions } from '@uiw/codemirror-extensions-mentions';
-import CodeMirror, { basicSetup } from '@uiw/react-codemirror';
+import CodeMirror, { EditorState, EditorView, basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
-import { CompletionContext, autocompletion } from "@codemirror/autocomplete";
+import { Completion, CompletionContext, autocompletion, closeCompletion, insertCompletionText, startCompletion } from "@codemirror/autocomplete";
 import { linter, lintGutter } from '@codemirror/lint';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
 import { WebsocketProvider } from 'y-websocket';
-import './App.css'
 import createTheme from '@uiw/codemirror-themes';
 import { tags as t } from '@lezer/highlight';
 import * as eslint from "eslint-linter-browserify";
-import { Config } from '@codemirror/language';
+import './App.css'
 
 
 
@@ -56,6 +54,7 @@ const myTheme = createTheme({
   settings: {
     selection: '#1be8ffc3',
     selectionMatch: '#1bff4c56',
+
     caret: '#1be7ff',
     gutterBorder: '#1be7ff',
     lineHighlight: '#1be8ff3b',
@@ -156,125 +155,341 @@ const pythonKeywords = [
   'yield'
 ];
 
+const replaceTagText = (view: EditorView, tagText: string, from: number, to: number) => {
+  return view.dispatch(insertCompletionText(view.state, tagText, from, to));
+}
 
 const completions = [
   ...javascriptKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "JavaScript keyword" })),
   ...javaKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Java keyword" })),
   ...pythonKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Python keyword" })),
   { label : "import", type: "keyword", info: "import"},
-  { label: "className", type: "attributeName", info: "HTML class attribute" },
-  { label: "span", type: "tagName", info:'html tag'},
-  { label: "a", type: "tagName", info: "HTML anchor tag" },
-  { label: "abbr", type: "tagName", info: "HTML abbreviation tag" },
-  { label: "address", type: "tagName", info: "HTML address tag" },
-  { label: "area", type: "tagName", info: "HTML area tag" },
-  { label: "article", type: "tagName", info: "HTML article tag" },
-  { label: "aside", type: "tagName", info: "HTML aside tag" },
-  { label: "audio", type: "tagName", info: "HTML audio tag" },
-  { label: "b", type: "tagName", info: "HTML bold tag" },
-  { label: "base", type: "tagName", info: "HTML base tag" },
-  { label: "bdi", type: "tagName", info: "HTML bdi tag" },
-  { label: "bdo", type: "tagName", info: "HTML bdo tag" },
-  { label: "blockquote", type: "tagName", info: "HTML blockquote tag" },
-  { label: "body", type: "tagName", info: "HTML body tag" },
-  { label: "br", type: "tagName", info: "HTML line break tag" },
-  { label: "button", type: "tagName", info: "HTML button tag" },
-  { label: "canvas", type: "tagName", info: "HTML canvas tag" },
-  { label: "caption", type: "tagName", info: "HTML table caption tag" },
-  { label: "cite", type: "tagName", info: "HTML citation tag" },
-  { label: "code", type: "tagName", info: "HTML code tag" },
-  { label: "col", type: "tagName", info: "HTML column tag" },
-  { label: "colgroup", type: "tagName", info: "HTML column group tag" },
-  { label: "data", type: "tagName", info: "HTML data tag" },
-  { label: "datalist", type: "tagName", info: "HTML datalist tag" },
-  { label: "dd", type: "tagName", info: "HTML description detail tag" },
-  { label: "del", type: "tagName", info: "HTML deleted text tag" },
-  { label: "details", type: "tagName", info: "HTML details tag" },
-  { label: "dfn", type: "tagName", info: "HTML definition term tag" },
-  { label: "dialog", type: "tagName", info: "HTML dialog tag" },
-  { label: "div", type: "tagName", info: "HTML division tag" },
-  { label: "dl", type: "tagName", info: "HTML description list tag" },
-  { label: "dt", type: "tagName", info: "HTML description term tag" },
-  { label: "em", type: "tagName", info: "HTML emphasized text tag" },
-  { label: "embed", type: "tagName", info: "HTML embed tag" },
-  { label: "fieldset", type: "tagName", info: "HTML fieldset tag" },
-  { label: "figure", type: "tagName", info: "HTML figure tag" },
-  { label: "figcaption", type: "tagName", info: "HTML figure caption tag" },
-  { label: "footer", type: "tagName", info: "HTML footer tag" },
-  { label: "form", type: "tagName", info: "HTML form tag" },
-  { label: "h1", type: "tagName", info: "HTML heading 1 tag" },
-  { label: "h2", type: "tagName", info: "HTML heading 2 tag" },
-  { label: "h3", type: "tagName", info: "HTML heading 3 tag" },
-  { label: "h4", type: "tagName", info: "HTML heading 4 tag" },
-  { label: "h5", type: "tagName", info: "HTML heading 5 tag" },
-  { label: "h6", type: "tagName", info: "HTML heading 6 tag" },
-  { label: "head", type: "tagName", info: "HTML head tag" },
-  { label: "header", type: "tagName", info: "HTML header tag" },
-  { label: "hgroup", type: "tagName", info: "HTML heading group tag" },
-  { label: "hr", type: "tagName", info: "HTML horizontal rule tag" },
-  { label: "html", type: "tagName", info: "HTML html tag" },
-  { label: "i", type: "tagName", info: "HTML italic tag" },
-  { label: "iframe", type: "tagName", info: "HTML inline frame tag" },
-  { label: "img", type: "tagName", info: "HTML image tag" },
-  { label: "input", type: "tagName", info: "HTML input tag" },
-  { label: "ins", type: "tagName", info: "HTML inserted text tag" },
-  { label: "kbd", type: "tagName", info: "HTML keyboard input tag" },
-  { label: "label", type: "tagName", info: "HTML label tag" },
-  { label: "legend", type: "tagName", info: "HTML legend tag" },
-  { label: "li", type: "tagName", info: "HTML list item tag" },
-  { label: "link", type: "tagName", info: "HTML link tag" },
-  { label: "main", type: "tagName", info: "HTML main tag" },
-  { label: "map", type: "tagName", info: "HTML map tag" },
-  { label: "mark", type: "tagName", info: "HTML marked text tag" },
-  { label: "menu", type: "tagName", info: "HTML menu tag" },
-  { label: "meta", type: "tagName", info: "HTML meta tag" },
-  { label: "meter", type: "tagName", info: "HTML meter tag" },
-  { label: "nav", type: "tagName", info: "HTML navigation tag" },
-  { label: "noscript", type: "tagName", info: "HTML noscript tag" },
-  { label: "object", type: "tagName", info: "HTML object tag" },
-  { label: "ol", type: "tagName", info: "HTML ordered list tag" },
-  { label: "optgroup", type: "tagName", info: "HTML option group tag" },
-  { label: "option", type: "tagName", info: "HTML option tag" },
-  { label: "output", type: "tagName", info: "HTML output tag" },
-  { label: "p", type: "tagName", info: "HTML paragraph tag" },
-  { label: "param", type: "tagName", info: "HTML parameter tag" },
-  { label: "picture", type: "tagName", info: "HTML picture tag" },
-  { label: "pre", type: "tagName", info: "HTML preformatted text tag" },
-  { label: "progress", type: "tagName", info: "HTML progress tag" },
-  { label: "q", type: "tagName", info: "HTML quote tag" },
-  { label: "rp", type: "tagName", info: "HTML ruby parenthesis tag" },
-  { label: "rt", type: "tagName", info: "HTML ruby text tag" },
-  { label: "ruby", type: "tagName", info: "HTML ruby tag" },
-  { label: "s", type: "tagName", info: "HTML strikethrough tag" },
-  { label: "samp", type: "tagName", info: "HTML sample output tag" },
-  { label: "script", type: "tagName", info: "HTML script tag" },
-  { label: "section", type: "tagName", info: "HTML section tag" },
-  { label: "select", type: "tagName", info: "HTML select tag" },
-  { label: "small", type: "tagName", info: "HTML small text tag" },
-  { label: "source", type: "tagName", info: "HTML source tag" },
-  { label: "span", type: "tagName", info: "HTML span tag" },
-  { label: "strong", type: "tagName", info: "HTML strong tag" },
-  { label: "style", type: "tagName", info: "HTML style tag" },
-  { label: "sub", type: "tagName", info: "HTML subscript tag" },
-  { label: "summary", type: "tagName", info: "HTML summary tag" },
-  { label: "sup", type: "tagName", info: "HTML superscript tag" },
-  { label: "table", type: "tagName", info: "HTML table tag" },
-  { label: "tbody", type: "tagName", info: "HTML table body tag" },
-  { label: "td", type: "tagName", info: "HTML table data cell tag" },
-  { label: "template", type: "tagName", info: "HTML template tag" },
-  { label: "textarea", type: "tagName", info: "HTML text area tag" },
-  { label: "tfoot", type: "tagName", info: "HTML table footer tag" },
-  { label: "th", type: "tagName", info: "HTML table header cell tag" },
-  { label: "thead", type: "tagName", info: "HTML table header tag" },
-  { label: "time", type: "tagName", info: "HTML time tag" },
-  { label: "title", type: "tagName", info: "HTML title tag" },
-  { label: "tr", type: "tagName", info: "HTML table row tag" },
-  { label: "track", type: "tagName", info: "HTML track tag" },
-  { label: "u", type: "tagName", info: "HTML underline tag" },
-  { label: "ul", type: "tagName", info: "HTML unordered list tag" },
-  { label: "var", type: "tagName", info: "HTML variable tag" },
-  { label: "video", type: "tagName", info: "HTML video tag" },
-  { label: "wbr", type: "tagName", info: "HTML word break opportunity tag" }
+  { label: "className", type: "attributeName", info: "HTML class attribute", detail: 'detail...',icon: false,
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, 'className={}', from, to)},
+  { label: "span", type: "tagName", info:'html tag' ,
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<span></span>', from, to)},
+  { label: "a", type: "tagName", info: "HTML anchor tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<a href=""></a>', from, to)},
+    { label: "a:blank", type: "tagName", info: "HTML anchor tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<a href="http://" target="_blank" rel="noopener noreferrer"></a>', from, to)},
+
+  { label: "abbr", type: "tagName", info: "HTML abbreviation tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<abbr></abbr>', from, to)},
+  { label: "address", type: "tagName", info: "HTML address tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<address></address>', from, to)},
+  { label: "area", type: "tagName", info: "HTML area tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<area></area>', from, to)},
+  { label: "article", type: "tagName", info: "HTML article tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<article></article>', from, to)},
+  { label: "aside", type: "tagName", info: "HTML aside tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<aside></aside>', from, to)},
+  { label: "audio", type: "tagName", info: "HTML audio tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<audio></audio>', from, to)},
+  { label: "b", type: "tagName", info: "HTML bold tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<b></b>', from, to)},
+  { label: "base", type: "tagName", info: "HTML base tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<base></base>', from, to)},
+  { label: "bdi", type: "tagName", info: "HTML bdi tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<bdi></bdi>', from, to)},
+  { label: "bdo", type: "tagName", info: "HTML bdo tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<bdo></bdo>', from, to)},
+  { label: "blockquote", type: "tagName", info: "HTML blockquote tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<blockquote></blockquote>', from, to)},
+  { label: "body", type: "tagName", info: "HTML body tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<body></body>', from, to)},
+  { label: "br", type: "tagName", info: "HTML line break tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<br></br>', from, to)},
+  { label: "button", type: "tagName", info: "HTML button tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<button></button>', from, to)},
+  { label: "canvas", type: "tagName", info: "HTML canvas tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<canvas></canvas>', from, to)},
+  { label: "caption", type: "tagName", info: "HTML table caption tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<caption></caption>', from, to)},
+  { label: "cite", type: "tagName", info: "HTML citation tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<cite></cite>', from, to)},
+  { label: "code", type: "tagName", info: "HTML code tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<code></code>', from, to)    
+},
+  { label: "col", type: "tagName", info: "HTML column tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<col></col>', from, to)    
+},
+  { label: "colgroup", type: "tagName", info: "HTML column group tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<colgroup></colgroup>', from, to)    
+},
+  { label: "data", type: "tagName", info: "HTML data tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<data></data>', from, to)    
+},
+  { label: "datalist", type: "tagName", info: "HTML datalist tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<datalist></datalist>', from, to)    
+},
+  { label: "dd", type: "tagName", info: "HTML description detail tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dd></dd>', from, to)    
+},
+  { label: "del", type: "tagName", info: "HTML deleted text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<del></del>', from, to)    
+},
+  { label: "details", type: "tagName", info: "HTML details tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<details></details>', from, to)    
+},
+  { label: "dfn", type: "tagName", info: "HTML definition term tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dfn></dfn>', from, to)    
+},
+  { label: "dialog", type: "tagName", info: "HTML dialog tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dialog></dialog>', from, to)    
+},
+  { label: "div", type: "tagName", info: "HTML division tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<div></div>', from, to)    
+},
+  { label: "dl", type: "tagName", info: "HTML description list tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dl></dl>', from, to)    
+},
+  { label: "dt", type: "tagName", info: "HTML description term tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dt></dt>', from, to)    
+},
+  { label: "em", type: "tagName", info: "HTML emphasized text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<em></em>', from, to)    
+},
+  { label: "embed", type: "tagName", info: "HTML embed tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<embed></embed>', from, to)    
+},
+  { label: "fieldset", type: "tagName", info: "HTML fieldset tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<fieldset></fieldset>', from, to)    
+},
+  { label: "figure", type: "tagName", info: "HTML figure tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figure></figure>', from, to)    
+},
+  { label: "figcaption", type: "tagName", info: "HTML figure caption tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figcaption></figcaption>', from, to)    
+},
+  { label: "footer", type: "tagName", info: "HTML footer tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<footer></footer>', from, to)    
+},
+  { label: "form", type: "tagName", info: "HTML form tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<form></form>', from, to)    
+},
+  { label: "h1", type: "tagName", info: "HTML heading 1 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h1></h1>', from, to)    
+},
+  { label: "h2", type: "tagName", info: "HTML heading 2 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h2></h2>', from, to)    
+},
+  { label: "h3", type: "tagName", info: "HTML heading 3 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h3></h3>', from, to)    
+},
+  { label: "h4", type: "tagName", info: "HTML heading 4 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h4></h4>', from, to)    
+},
+  { label: "h5", type: "tagName", info: "HTML heading 5 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h5></h5>', from, to)    
+},
+  { label: "h6", type: "tagName", info: "HTML heading 6 tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h6></h6>', from, to)    
+},
+  { label: "head", type: "tagName", info: "HTML head tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<head></head>', from, to)    
+},
+  { label: "header", type: "tagName", info: "HTML header tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<header></header>', from, to)    
+},
+  { label: "hgroup", type: "tagName", info: "HTML heading group tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hgroup></hgroup>', from, to)    
+},
+  { label: "hr", type: "tagName", info: "HTML horizontal rule tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hr></hr>', from, to)    
+},
+  { label: "html", type: "tagName", info: "HTML html tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<html></html>', from, to)    
+},
+  { label: "i", type: "tagName", info: "HTML italic tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<i></i>', from, to)    
+},
+  { label: "iframe", type: "tagName", info: "HTML inline frame tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<iframe></iframe>', from, to)    
+},
+  { label: "img", type: "tagName", info: "HTML image tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<img></img>', from, to)    
+},
+  { label: "input", type: "tagName", info: "HTML input tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<input></input>', from, to)    
+},
+  { label: "ins", type: "tagName", info: "HTML inserted text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ins></ins>', from, to)    
+},
+  { label: "kbd", type: "tagName", info: "HTML keyboard input tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<kbd></kbd>', from, to)    
+},
+  { label: "label", type: "tagName", info: "HTML label tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<label></label>', from, to)    
+},
+  { label: "legend", type: "tagName", info: "HTML legend tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<legend></legend>', from, to)    
+},
+  { label: "li", type: "tagName", info: "HTML list item tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<li></li>', from, to)    
+},
+  { label: "link", type: "tagName", info: "HTML link tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<link></link>', from, to)    
+},
+  { label: "main", type: "tagName", info: "HTML main tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<main></main>', from, to)    
+},
+  { label: "map", type: "tagName", info: "HTML map tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<map></map>', from, to)    
+},
+  { label: "mark", type: "tagName", info: "HTML marked text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<mark></mark>', from, to)    
+},
+  { label: "menu", type: "tagName", info: "HTML menu tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<menu></menu>', from, to)    
+},
+  { label: "meta", type: "tagName", info: "HTML meta tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meta></meta>', from, to)    
+},
+  { label: "meter", type: "tagName", info: "HTML meter tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meter></meter>', from, to)    
+},
+  { label: "nav", type: "tagName", info: "HTML navigation tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<nav></nav>', from, to)    
+},
+  { label: "noscript", type: "tagName", info: "HTML noscript tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<noscript></noscript>', from, to)    
+},
+  { label: "object", type: "tagName", info: "HTML object tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<object></object>', from, to)    
+},
+  { label: "ol", type: "tagName", info: "HTML ordered list tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ol></ol>', from, to)    
+},
+  { label: "optgroup", type: "tagName", info: "HTML option group tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<optgroup></optgroup>', from, to)    
+},
+  { label: "option", type: "tagName", info: "HTML option tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<option></option>', from, to)    
+},
+  { label: "output", type: "tagName", info: "HTML output tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<output></output>', from, to)    
+},
+  { label: "p", type: "tagName", info: "HTML paragraph tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<p></p>', from, to)    
+},
+  { label: "param", type: "tagName", info: "HTML parameter tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<param></param>', from, to)    
+},
+  { label: "picture", type: "tagName", info: "HTML picture tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<picture></picture>', from, to)    
+},
+  { label: "pre", type: "tagName", info: "HTML preformatted text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<pre></pre>', from, to)    
+},
+  { label: "progress", type: "tagName", info: "HTML progress tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<progress></progress>', from, to)    
+},
+  { label: "q", type: "tagName", info: "HTML quote tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<q></q>', from, to)    
+},
+  { label: "rp", type: "tagName", info: "HTML ruby parenthesis tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rp></rp>', from, to)    
+},
+  { label: "rt", type: "tagName", info: "HTML ruby text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rt></rt>', from, to)    
+},
+  { label: "ruby", type: "tagName", info: "HTML ruby tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ruby></ruby>', from, to)    
+},
+  { label: "s", type: "tagName", info: "HTML strikethrough tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<s></s>', from, to)    
+},
+  { label: "samp", type: "tagName", info: "HTML sample output tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<samp></samp>', from, to)    
+},
+  { label: "script", type: "tagName", info: "HTML script tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<script></script>', from, to)    
+},
+  { label: "section", type: "tagName", info: "HTML section tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<section></section>', from, to)    
+},
+  { label: "select", type: "tagName", info: "HTML select tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<select></select>', from, to)    
+},
+  { label: "small", type: "tagName", info: "HTML small text tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<small></small>', from, to)    
+},
+  { label: "source", type: "tagName", info: "HTML source tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<source></source>', from, to)    
+},
+  { label: "span", type: "tagName", info: "HTML span tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<span></span>', from, to)    
+},
+  { label: "strong", type: "tagName", info: "HTML strong tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<strong></strong>', from, to)    
+},
+  { label: "style", type: "tagName", info: "HTML style tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<style></style>', from, to)    
+},
+  { label: "sub", type: "tagName", info: "HTML subscript tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sub></sub>', from, to)    
+},
+  { label: "summary", type: "tagName", info: "HTML summary tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<summary></summary>', from, to)    
+},
+  { label: "sup", type: "tagName", info: "HTML superscript tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sup></sup>', from, to)    
+},
+  { label: "table", type: "tagName", info: "HTML table tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<table></table>', from, to)    
+},
+  { label: "tbody", type: "tagName", info: "HTML table body tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tbody></tbody>', from, to)    
+},
+  { label: "td", type: "tagName", info: "HTML table data cell tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<td></td>', from, to)    
+},
+  { label: "template", type: "tagName", info: "HTML template tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<template></template>', from, to)    
+},
+  { label: "textarea", type: "tagName", info: "HTML text area tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<textarea></textarea>', from, to)    
+},
+  { label: "tfoot", type: "tagName", info: "HTML table footer tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tfoot></tfoot>', from, to)    
+},
+  { label: "th", type: "tagName", info: "HTML table header cell tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<th></th>', from, to)    
+},
+  { label: "thead", type: "tagName", info: "HTML table header tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<thead></thead>', from, to)    
+},
+  { label: "time", type: "tagName", info: "HTML time tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<time></time>', from, to)    
+},
+  { label: "title", type: "tagName", info: "HTML title tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<title></title>', from, to)    
+},
+  { label: "tr", type: "tagName", info: "HTML table row tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tr></tr>', from, to)    
+},
+  { label: "track", type: "tagName", info: "HTML track tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<track></track>', from, to)    
+},
+  { label: "u", type: "tagName", info: "HTML underline tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<u></u>', from, to)    
+},
+  { label: "ul", type: "tagName", info: "HTML unordered list tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ul></ul>', from, to)    
+},
+  { label: "var", type: "tagName", info: "HTML variable tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<var></var>', from, to)    
+},
+  { label: "video", type: "tagName", info: "HTML video tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<video></video>', from, to)    
+},
+  { label: "wbr", type: "tagName", info: "HTML word break opportunity tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<wbr></wbr>', from, to)    
+},
+  { label: "svg", type: "tagName", info: "HTML svg tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<svg></svg>', from, to)    
+},
+
 ];
 // { label: "jaehwan", type: "constant", info: "으으 방구쟁이" },
 //   { label: "password", type: "variable" }
@@ -286,8 +501,9 @@ function myCompletions(context: CompletionContext) {
   return {
     from: before ? before.from : context.pos,
     options: completions,
-    validFor: /^\w*$/
-  };
+    validFor: /^\w*$/,
+    
+  }
 }
 
 function App() {
@@ -298,6 +514,7 @@ function App() {
   const [onTypescript, setOnTypescript] = useState(false);
   const [languageModeState, setLanguageModeState] = useState(languageMode.javascript);
   const provider = useRef<WebsocketProvider>();
+  const [fontSize, setFontSize] = useState(14);
   // const wsRef = useRef<WebSocket>();
   
   const onChange = (val:string) => {
@@ -312,7 +529,9 @@ function App() {
     setLanguageModeState(languageMode[val])
   }
 
-
+  const onChangeFontSize = (val: number) => {
+    setFontSize(val)
+  }
 
 
   useEffect(() => {
@@ -330,7 +549,9 @@ function App() {
     setUndoManager(new Y.UndoManager(yText));
     // setYText(yText);
     yText.observe((event, transaction) => {
-      // const text = yText.toString();
+      const text = yText.toString();
+
+      // console.log(event,transaction,yText);
     })
     provider.current.awareness.setLocalStateField('user', {
       name: '항구를떠도는철새' + Math.floor(Math.random() * 100),
@@ -377,9 +598,22 @@ function App() {
         >타입스크립트
       </button>
       }
-      <div className="text-white">아이콘</div>
+      <div className="text-white">
+        <select
+          defaultValue="14"
+          className="w-full px-4 h-12 rounded-lg bg-[#292A30] text-white"
+          onChange={(e) => onChangeFontSize(+e.target.value)}
+        >
+          <option value="14">14</option>
+          <option value="16">16</option>
+          <option value="18">18</option>
+          <option value="20">20</option>
+          <option value="24">24</option>
+          <option value="28">28</option>
+        </select>
+      </div>
     </div>
-
+      
     <div className="flex flex-col gap-8">
       <div className="text-white">아이콘</div>
       <div className="text-white">아이콘</div>
@@ -408,8 +642,9 @@ function App() {
             dropCursor: true,
             indentOnInput: true,
             autocompletion: true,
+            
           }}
-          extensions={[autocompletion({ override: [myCompletions] }),
+          extensions={[autocompletion({ override: [ myCompletions ] }),
             basicSetup({
               completionKeymap: true,
               foldGutter: true,
@@ -418,7 +653,13 @@ function App() {
             yCollab(yText, provider.current.awareness, { undoManager }),
             languageModeState,
             lintGutter(),
-            linter(esLint(new eslint.Linter(),config))
+            linter(esLint(new eslint.Linter(),config)),
+            EditorView.theme({
+              "&": {
+                fontSize: `${fontSize}px`,
+              }
+            }),
+            
             // mentions(users),
             ]}
           />
@@ -445,266 +686,4 @@ export default App;
 
 
 
-
-// import createTheme from "@uiw/codemirror-themes";
-// import { tags as t } from '@lezer/highlight';
-
-// const myTheme = createTheme({
-//   theme: 'dark',
-//   settings: {
-//     background: '#2d2d2d',
-//     backgroundImage: '',
-//     foreground: '#fff',
-//     caret: '#AEAFAD',
-//     selection: '#D6D6D6',
-//     selectionMatch: '#D6D6D6',
-//     gutterBackground: '#FFFFFF',
-//     gutterForeground: '#4D4D4C',
-//     gutterBorder: '#dddddd',
-//     gutterActiveForeground: '',
-//     lineHighlight: '#EFEFEF',
-//   },
-//   styles: [
-//     { tag: t.comment, color: '#787b80' },
-//     { tag: t.definition(t.typeName), color: '#194a7b' },
-//     { tag: t.typeName, color: '#194a7b' },
-//     { tag: t.tagName, color: '#008a02' },
-//     { tag: t.variableName, color: '#1a00db' },
-//   ],
-// });
-
-
-
-
-// export const SUPPORT_LEVELS = {
-//   SUPPORTED: "SUPPORTED",
-//   NOT_SUPPORTED: "NOT_SUPPORTED",
-//   PARTIAL_SUPPORT: "PARTIAL_SUPPORT",
-// };
-
-
-// export const INDENT_VALUES = {
-//   TABS: "Tabs",
-//   SPACES: "Spaces",
-// };
-
-// export const EDITOR_SETTINGS = {
-//   theme: {
-//     label: "Syntax Highlighting",
-    
-    
-//     // "Solarized Dark",
-//     // "Tomorrow Night",
-//     // "Oceanic Dark",
-//     // "Panda",
-//     // "DuoTone Dark",
-//     // "High Contrast Dark",
-//     // "Classic",
-//     // "Solarized Light",
-//     // "XQ Light",
-//     // "Oceanic Light",
-//     // "MDN Like",
-//     // "DuoTone Light",
-//     // "High Contrast Light",
-
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: "We have lots of themes to port over; may want to drop ",
-//   },
-
-//   fontSize: {
-//     label: "Font Size",
-//     default: 14,
-//     options: [10, 12, 14, 16, 18, 20, 22, 24],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://discuss.codemirror.net/t/changing-the-font-size-of-cm6/2935">
-//           Implemented via Theme
-//         </a>
-//       </>
-//     ),
-//   },
-
-//   lineHeight: {
-//     label: "Line Height",
-//     default: 1.4,
-//     options: [1, 1.2, 1.4, 1.6, 1.8, 2],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: null,
-//   },
-
-//   fontFamily: {
-//     label: "Font",
-//     default: "Source Code Pro",
-//     options: [
-//       "Monaco",
-//       "Hack",
-//       "Inconsolata",
-//       "Source Code Pro",
-//       "Monoid",
-//       "Fantasque Sans Mono",
-//       "Input Mono",
-//       "DejaVu Sans Mono",
-//       "FireCode Medium",
-//       "Operator Mono",
-//       "Dank Mono",
-//       "Gintronic",
-//       "Courier Prime",
-//       "JetBrains Mono",
-//       "Recursive",
-//       "MonoLisa",
-//       "Codelia",
-//       "Comic Code",
-//     ],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: null,
-//   },
-
-//   indentWidth: {
-//     label: "Indent Width",
-//     default: 2,
-//     options: [2, 4, 6, 8],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         NOTE: Does not convert previous indentations to a new width. There are
-//         some ways to do that through{" "}
-//         <a href="https://prettier.io/docs/en/api.html">Prettier</a>. Is there an
-//         official CodeMirror way of altering indent width of pre-authored code
-//         for spaces?
-//       </>
-//     ),
-//   },
-
-//   indentUnit: {
-//     label: "Tabs or Spaces",
-//     default: INDENT_VALUES.SPACES,
-//     options: [INDENT_VALUES.SPACES, INDENT_VALUES.TABS],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>NOTE: Does not convert previous indentations to the new indent unit. </>
-//     ),
-//   },
-
-//   lineNumbers: {
-//     label: "Line Numbers",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://codemirror.net/6/docs/ref/#gutter.lineNumbers">
-//           Officially supported
-//         </a>
-//       </>
-//     ),
-//   },
-
-//   lineWrapping: {
-//     label: "Line Wrapping",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://codemirror.net/6/docs/ref/#view.EditorView.lineWrapping">
-//           Officially supported
-//         </a>
-//       </>
-//     ),
-//   },
-
-//   codeFolding: {
-//     label: "Code Folding",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://codemirror.net/6/docs/ref/#fold">
-//           Officially supported.
-//         </a>
-//       </>
-//     ),
-//   },
-
-//   matchBrackets: {
-//     label: "Match & Close Brackets / Tags",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <p>
-//           <a href="https://codemirror.net/docs/ref/#language.bracketMatching">
-//             Officially supported.
-//           </a>
-//         </p>
-//         <p>
-//           TODO: CodePen has traditionally paired this concept with{" "}
-//           <a href="https://codemirror.net/docs/ref/#autocomplete.closeBrackets">
-//             Close Brackets
-//           </a>
-//           , but they are different plugins in CodeMirror. Should we separate or
-//           combine?
-//         </p>
-
-//         <p>
-//           TODO: There&apos;s also the concept of{" "}
-//           <a href="https://github.com/codemirror/lang-html#api-reference">
-//             `matchClosingTags` and `autoCloseTags` for HTML
-//           </a>{" "}
-//           (possibly JSX as well?). Do we want this all linked to one option? In
-//           the interest of simplicity, they do all seem related.
-//         </p>
-//       </>
-//     ),
-//   },
-
-//   /* https://codemirror.net/6/docs/ref/#autocomplete */
-//   autocomplete: {
-//     label: "Autocomplete",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.PARTIAL_SUPPORT,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://codemirror.net/6/docs/ref/#autocomplete">
-//           Officially supported
-//         </a>
-//         . Need to figure out which languages it works on. Doesn&apos;t seem to
-//         do simple stuff in JavaScript like `document`, or `querySelector`. Also
-//         we need to pipe in authored JavaScript, so autocomplete works on
-//         user-authored code.
-//       </>
-//     ),
-//   },
-
-//   emmet: {
-//     label: "Emmet",
-//     default: true,
-//     options: [true, false],
-//     supported: SUPPORT_LEVELS.SUPPORTED,
-//     implemented: true,
-//     notes: (
-//       <>
-//         <a href="https://github.com/emmetio/codemirror6-plugin">
-//           Implemented as a plugin
-//         </a>{" "}
-//         by Sergey.
-//       </>
-//     ),
-//   },
-// };
 
