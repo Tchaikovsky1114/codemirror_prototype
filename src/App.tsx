@@ -1,10 +1,10 @@
 import { autoCloseTags, esLint, javascript } from '@codemirror/lang-javascript'
 import { java } from '@codemirror/lang-java'
 import { python } from '@codemirror/lang-python'
-import CodeMirror, { ChangeSet, EditorSelection, EditorState, EditorView, ViewUpdate, basicSetup } from '@uiw/react-codemirror';
+import CodeMirror, { EditorView, basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
-import { Completion, CompletionContext, autocompletion, closeCompletion, insertCompletionText, startCompletion } from "@codemirror/autocomplete";
+import { Completion, CompletionContext, autocompletion } from "@codemirror/autocomplete";
 import { linter, lintGutter } from '@codemirror/lint';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
@@ -14,22 +14,17 @@ import { tags as t } from '@lezer/highlight';
 import * as eslint from "eslint-linter-browserify";
 import './App.css'
 
-
-
-
 const config = {
   parserOptions: {
     ecmaVersion: 2019,
     sourceType: "module",
     ecmaFeatures: {
       jsx: true,
-    }
-  },
+    }},
  
   env: {
     browser: true,
-    node: true
-  },
+    node: true},
   extends: "eslint:recommended",
   rules: {
     // enable additional rules
@@ -57,8 +52,7 @@ const myTheme = createTheme({
 
     caret: '#1be7ff',
     gutterBorder: '#1be7ff',
-    lineHighlight: '#1be8ff3b',
-  },
+    lineHighlight: '#1be8ff3b',},
     styles: [
     { tag: t.comment, color: '#7ea8fc9b' },
     { tag: t.definition(t.typeName), color: '#2b89e7' },
@@ -163,6 +157,7 @@ const replaceTagText = (view: EditorView, tagText: string, from: number, to: num
   const cursorPos = from + tagText.indexOf('>') + 1; 
   const prevChar = view.state.doc.sliceString(from - 1, from); // tagText의 이전 문자
   const isPrevAngleBracket = prevChar === "<" ? 1 : 0;
+
   view.dispatch({
     changes: [{ from:from - isPrevAngleBracket, to, insert: tagText }],
     selection: { anchor: cursorPos - isPrevAngleBracket }
@@ -236,288 +231,193 @@ const completions = [
   { label: "cite", type: "tagName", info: "HTML citation tag",
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<cite></cite>', from, to)},
   { label: "code", type: "tagName", info: "HTML code tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<code></code>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<code></code>', from, to)},
   { label: "col", type: "tagName", info: "HTML column tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<col></col>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<col></col>', from, to)    },
   { label: "colgroup", type: "tagName", info: "HTML column group tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<colgroup></colgroup>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<colgroup></colgroup>', from, to)    },
   { label: "data", type: "tagName", info: "HTML data tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<data></data>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<data></data>', from, to)    },
   { label: "datalist", type: "tagName", info: "HTML datalist tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<datalist></datalist>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<datalist></datalist>', from, to)    },
   { label: "dd", type: "tagName", info: "HTML description detail tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dd></dd>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dd></dd>', from, to)    },
   { label: "del", type: "tagName", info: "HTML deleted text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<del></del>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<del></del>', from, to)    },
   { label: "details", type: "tagName", info: "HTML details tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<details></details>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<details></details>', from, to)    },
   { label: "dfn", type: "tagName", info: "HTML definition term tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dfn></dfn>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dfn></dfn>', from, to)    },
   { label: "dialog", type: "tagName", info: "HTML dialog tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dialog></dialog>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dialog></dialog>', from, to)    },
   { label: "div", type: "tagName", info: "HTML division tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<div></div>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<div></div>', from, to)    },
   { label: "dl", type: "tagName", info: "HTML description list tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dl></dl>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dl></dl>', from, to)    },
   { label: "dt", type: "tagName", info: "HTML description term tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dt></dt>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<dt></dt>', from, to)    },
   { label: "em", type: "tagName", info: "HTML emphasized text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<em></em>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<em></em>', from, to)    },
   { label: "embed", type: "tagName", info: "HTML embed tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<embed></embed>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<embed></embed>', from, to)    },
   { label: "fieldset", type: "tagName", info: "HTML fieldset tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<fieldset></fieldset>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<fieldset></fieldset>', from, to)    },
   { label: "figure", type: "tagName", info: "HTML figure tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figure></figure>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figure></figure>', from, to)    },
   { label: "figcaption", type: "tagName", info: "HTML figure caption tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figcaption></figcaption>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<figcaption></figcaption>', from, to)    },
   { label: "footer", type: "tagName", info: "HTML footer tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<footer></footer>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<footer></footer>', from, to)    },
   { label: "form", type: "tagName", info: "HTML form tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<form></form>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<form></form>', from, to)    },
   { label: "h1", type: "tagName", info: "HTML heading 1 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h1></h1>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h1></h1>', from, to)    },
   { label: "h2", type: "tagName", info: "HTML heading 2 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h2></h2>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h2></h2>', from, to)    },
   { label: "h3", type: "tagName", info: "HTML heading 3 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h3></h3>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h3></h3>', from, to)    },
   { label: "h4", type: "tagName", info: "HTML heading 4 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h4></h4>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h4></h4>', from, to)    },
   { label: "h5", type: "tagName", info: "HTML heading 5 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h5></h5>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h5></h5>', from, to)    },
   { label: "h6", type: "tagName", info: "HTML heading 6 tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h6></h6>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<h6></h6>', from, to)    },
   { label: "head", type: "tagName", info: "HTML head tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<head></head>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<head></head>', from, to)    },
   { label: "header", type: "tagName", info: "HTML header tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<header></header>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<header></header>', from, to)    },
   { label: "hgroup", type: "tagName", info: "HTML heading group tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hgroup></hgroup>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hgroup></hgroup>', from, to)    },
   { label: "hr", type: "tagName", info: "HTML horizontal rule tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hr></hr>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<hr></hr>', from, to)    },
   { label: "html", type: "tagName", info: "HTML html tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<html></html>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<html></html>', from, to)    },
   { label: "i", type: "tagName", info: "HTML italic tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<i></i>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<i></i>', from, to)    },
   { label: "iframe", type: "tagName", info: "HTML inline frame tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<iframe></iframe>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<iframe></iframe>', from, to)    },
   { label: "img", type: "tagName", info: "HTML image tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<img></img>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<img></img>', from, to)    },
   { label: "input", type: "tagName", info: "HTML input tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<input></input>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<input></input>', from, to)    },
   { label: "ins", type: "tagName", info: "HTML inserted text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ins></ins>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ins></ins>', from, to)    },
   { label: "kbd", type: "tagName", info: "HTML keyboard input tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<kbd></kbd>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<kbd></kbd>', from, to)    },
   { label: "label", type: "tagName", info: "HTML label tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<label></label>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<label></label>', from, to)    },
   { label: "legend", type: "tagName", info: "HTML legend tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<legend></legend>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<legend></legend>', from, to)    },
   { label: "li", type: "tagName", info: "HTML list item tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<li></li>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<li></li>', from, to)    },
   { label: "link", type: "tagName", info: "HTML link tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<link></link>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<link></link>', from, to)    },
   { label: "main", type: "tagName", info: "HTML main tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<main></main>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<main></main>', from, to)    },
   { label: "map", type: "tagName", info: "HTML map tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<map></map>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<map></map>', from, to)    },
   { label: "mark", type: "tagName", info: "HTML marked text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<mark></mark>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<mark></mark>', from, to)    },
   { label: "menu", type: "tagName", info: "HTML menu tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<menu></menu>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<menu></menu>', from, to)    },
   { label: "meta", type: "tagName", info: "HTML meta tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meta></meta>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meta></meta>', from, to)    },
   { label: "meter", type: "tagName", info: "HTML meter tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meter></meter>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<meter></meter>', from, to)    },
   { label: "nav", type: "tagName", info: "HTML navigation tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<nav></nav>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<nav></nav>', from, to)    },
   { label: "noscript", type: "tagName", info: "HTML noscript tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<noscript></noscript>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<noscript></noscript>', from, to)    },
   { label: "object", type: "tagName", info: "HTML object tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<object></object>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<object></object>', from, to)    },
   { label: "ol", type: "tagName", info: "HTML ordered list tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ol></ol>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ol></ol>', from, to)    },
   { label: "optgroup", type: "tagName", info: "HTML option group tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<optgroup></optgroup>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<optgroup></optgroup>', from, to)    },
   { label: "option", type: "tagName", info: "HTML option tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<option></option>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<option></option>', from, to)    },
   { label: "output", type: "tagName", info: "HTML output tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<output></output>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<output></output>', from, to)    },
   { label: "p", type: "tagName", info: "HTML paragraph tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<p></p>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<p></p>', from, to)    },
   { label: "param", type: "tagName", info: "HTML parameter tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<param></param>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<param></param>', from, to)    },
   { label: "picture", type: "tagName", info: "HTML picture tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<picture></picture>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<picture></picture>', from, to)    },
   { label: "pre", type: "tagName", info: "HTML preformatted text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<pre></pre>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<pre></pre>', from, to)    },
   { label: "progress", type: "tagName", info: "HTML progress tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<progress></progress>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<progress></progress>', from, to)    },
   { label: "q", type: "tagName", info: "HTML quote tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<q></q>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<q></q>', from, to)    },
   { label: "rp", type: "tagName", info: "HTML ruby parenthesis tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rp></rp>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rp></rp>', from, to)    },
   { label: "rt", type: "tagName", info: "HTML ruby text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rt></rt>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<rt></rt>', from, to)    },
   { label: "ruby", type: "tagName", info: "HTML ruby tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ruby></ruby>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ruby></ruby>', from, to)    },
   { label: "s", type: "tagName", info: "HTML strikethrough tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<s></s>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<s></s>', from, to)    },
   { label: "samp", type: "tagName", info: "HTML sample output tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<samp></samp>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<samp></samp>', from, to)    },
   { label: "script", type: "tagName", info: "HTML script tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<script></script>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<script></script>', from, to)    },
   { label: "section", type: "tagName", info: "HTML section tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<section></section>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<section></section>', from, to)    },
   { label: "select", type: "tagName", info: "HTML select tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<select></select>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<select></select>', from, to)    },
   { label: "small", type: "tagName", info: "HTML small text tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<small></small>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<small></small>', from, to)    },
   { label: "source", type: "tagName", info: "HTML source tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<source></source>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<source></source>', from, to)    },
   { label: "span", type: "tagName", info: "HTML span tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<span></span>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<span></span>', from, to)    },
   { label: "strong", type: "tagName", info: "HTML strong tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<strong></strong>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<strong></strong>', from, to)    },
   { label: "style", type: "tagName", info: "HTML style tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<style></style>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<style></style>', from, to)    },
   { label: "sub", type: "tagName", info: "HTML subscript tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sub></sub>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sub></sub>', from, to)    },
   { label: "summary", type: "tagName", info: "HTML summary tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<summary></summary>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<summary></summary>', from, to)    },
   { label: "sup", type: "tagName", info: "HTML superscript tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sup></sup>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<sup></sup>', from, to)    },
   { label: "table", type: "tagName", info: "HTML table tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<table></table>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<table></table>', from, to)    },
   { label: "tbody", type: "tagName", info: "HTML table body tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tbody></tbody>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tbody></tbody>', from, to)    },
   { label: "td", type: "tagName", info: "HTML table data cell tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<td></td>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<td></td>', from, to)    },
   { label: "template", type: "tagName", info: "HTML template tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<template></template>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<template></template>', from, to)    },
   { label: "textarea", type: "tagName", info: "HTML text area tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<textarea></textarea>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<textarea></textarea>', from, to)    },
   { label: "tfoot", type: "tagName", info: "HTML table footer tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tfoot></tfoot>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tfoot></tfoot>', from, to)    },
   { label: "th", type: "tagName", info: "HTML table header cell tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<th></th>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<th></th>', from, to)    },
   { label: "thead", type: "tagName", info: "HTML table header tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<thead></thead>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<thead></thead>', from, to)    },
   { label: "time", type: "tagName", info: "HTML time tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<time></time>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<time></time>', from, to)    },
   { label: "title", type: "tagName", info: "HTML title tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<title></title>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<title></title>', from, to)    },
   { label: "tr", type: "tagName", info: "HTML table row tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tr></tr>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<tr></tr>', from, to)    },
   { label: "track", type: "tagName", info: "HTML track tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<track></track>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<track></track>', from, to)    },
   { label: "u", type: "tagName", info: "HTML underline tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<u></u>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<u></u>', from, to)    },
   { label: "ul", type: "tagName", info: "HTML unordered list tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ul></ul>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<ul></ul>', from, to)    },
   { label: "var", type: "tagName", info: "HTML variable tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<var></var>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<var></var>', from, to)    },
   { label: "video", type: "tagName", info: "HTML video tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<video></video>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<video></video>', from, to)    },
   { label: "wbr", type: "tagName", info: "HTML word break opportunity tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<wbr></wbr>', from, to)    
-},
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<wbr></wbr>', from, to)    },
   { label: "svg", type: "tagName", info: "HTML svg tag",
-    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<svg></svg>', from, to)    
-},
-
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<svg></svg>', from, to)    },
 ];
 // { label: "jaehwan", type: "constant", info: "으으 방구쟁이" },
 //   { label: "password", type: "variable" }
@@ -569,8 +469,7 @@ function App() {
       'codemirror1234',
       yDoc
     )
-    
-  },[])
+    },[])
 
   useEffect(() => {
     if(!provider.current) return;
@@ -590,8 +489,7 @@ function App() {
 
     return () => {
       provider.current?.disconnect();
-    }
-  },[provider,yText])
+    }},[provider,yText])
 
   
 
@@ -683,13 +581,12 @@ function App() {
             lintGutter(),
             linter(esLint(new eslint.Linter(),config)),
             EditorView.theme({
-              "&": {
-                fontSize: `${fontSize}px`,
-              }
+              "&": { fontSize: `${fontSize}px`
+            },
+              
             }),
-            
-            // mentions(users),
             ]}
+
           />
           : <div>로딩중</div>
         }
