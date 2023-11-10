@@ -1,7 +1,7 @@
 import { autoCloseTags, esLint, javascript } from '@codemirror/lang-javascript'
 import { java } from '@codemirror/lang-java'
 import { python } from '@codemirror/lang-python'
-import CodeMirror, { EditorState, EditorView, basicSetup } from '@uiw/react-codemirror';
+import CodeMirror, { ChangeSet, EditorSelection, EditorState, EditorView, ViewUpdate, basicSetup } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
 import { Completion, CompletionContext, autocompletion, closeCompletion, insertCompletionText, startCompletion } from "@codemirror/autocomplete";
@@ -154,20 +154,48 @@ const pythonKeywords = [
   'True', 'try', 'while', 'with',
   'yield'
 ];
+// view.dispatch(
+  //   insertCompletionText(view.state, tagText, from, to),
+  // );
 
-const replaceTagText = (view: EditorView, tagText: string, from: number, to: number) => {
-  return view.dispatch(insertCompletionText(view.state, tagText, from, to));
+const replaceTagText = (view: EditorView, tagText: string, from: number, to: number) => {  
+  
+  const cursorPos = from + tagText.indexOf('>') + 1; 
+  const prevChar = view.state.doc.sliceString(from - 1, from); // tagText의 이전 문자
+  const isPrevAngleBracket = prevChar === "<" ? 1 : 0;
+  view.dispatch({
+    changes: [{ from:from - isPrevAngleBracket, to, insert: tagText }],
+    selection: { anchor: cursorPos - isPrevAngleBracket }
+  })
 }
+
+
 
 const completions = [
   ...javascriptKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "JavaScript keyword" })),
   ...javaKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Java keyword" })),
   ...pythonKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Python keyword" })),
   { label : "import", type: "keyword", info: "import"},
+  { label : 'doc', type: "keyword", info: "html generator",
+  apply: (view:EditorView, _: Completion, from: number, to: number) =>
+  replaceTagText(view, `
+  
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    
+  </body>
+  </html>`, from, to)},
   { label: "className", type: "attributeName", info: "HTML class attribute", detail: 'detail...',icon: false,
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, 'className={}', from, to)},
   { label: "span", type: "tagName", info:'html tag' ,
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<span></span>', from, to)},
+  { label: "<a", type: "tagName", info: "HTML anchor tag",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<a href=""></a>', from, to)},
   { label: "a", type: "tagName", info: "HTML anchor tag",
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<a href=""></a>', from, to)},
     { label: "a:blank", type: "tagName", info: "HTML anchor tag",
@@ -683,7 +711,4 @@ function App() {
 }
 
 export default App;
-
-
-
 
