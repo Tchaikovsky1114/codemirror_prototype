@@ -45,34 +45,11 @@
 }
 
 /* 
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-keyword
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-keyword
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-keyword
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-keyword
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-keyword
-cm-completionLabel cm-completionMatchedText
-cm-completionIcon cm-completionIcon-tagName
-cm-completionLabel cm-completionMatchedText
+cm-completionIcon-tagName
 cm-completionIcon cm-completionIcon-keyword
 cm-completionLabel cm-completionMatchedText
 cm-tooltip cm-completionInfo cm-completionInfo-right
 cm-tooltip-autocomplete cm-tooltip cm-tooltip-below
-
-
 /* 
  
 .cm-tooltip-lint {

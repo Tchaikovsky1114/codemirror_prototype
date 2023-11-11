@@ -1,18 +1,67 @@
-import { autoCloseTags, esLint, javascript } from '@codemirror/lang-javascript'
-import { java } from '@codemirror/lang-java'
-import { python } from '@codemirror/lang-python'
-import CodeMirror, { EditorView, basicSetup } from '@uiw/react-codemirror';
+import { autoCloseTags, esLint, javascript,javascriptLanguage } from '@codemirror/lang-javascript'
+import { javaLanguage, java } from '@codemirror/lang-java'
+import { pythonLanguage, python } from '@codemirror/lang-python'
+import CodeMirror, { EditorState, EditorView, basicSetup, highlightActiveLineGutter, highlightSpecialChars, lineNumbers,crosshairCursor, drawSelection, dropCursor, highlightActiveLine,  keymap, rectangularSelection } from '@uiw/react-codemirror';
 import { useEffect, useRef, useState } from 'react';
 import { yCollab } from 'y-codemirror.next';
-import { Completion, CompletionContext, autocompletion } from "@codemirror/autocomplete";
+import { closeBrackets, closeBracketsKeymap, completionKeymap, Completion, CompletionContext, autocompletion } from "@codemirror/autocomplete";
+
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+
+import { bracketMatching, defaultHighlightStyle, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting } from '@codemirror/language'
+import { lintKeymap } from '@codemirror/lint'
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
+
+// import { crosshairCursor, drawSelection, dropCursor, highlightActiveLine,  keymap, rectangularSelection } from '@codemirror/view'
+
 import { linter, lintGutter } from '@codemirror/lint';
 import * as Y from 'yjs';
 import * as random from 'lib0/random';
 import { WebsocketProvider } from 'y-websocket';
 import createTheme from '@uiw/codemirror-themes';
 import { tags as t } from '@lezer/highlight';
+import {parser as jsParser} from "@lezer/javascript";
+import {parser as htmlParser} from '@lezer/html';
+import {parseMixed} from '@lezer/common';
+import { LRLanguage } from '@codemirror/language';
 import * as eslint from "eslint-linter-browserify";
-import './App.css'
+import './App.css';
+import {syntaxTree} from "@codemirror/language"
+
+
+const mixedHTMLParser = htmlParser.configure({
+  wrap: parseMixed(node => {
+    return node.name == "ScriptText" ? {parser: jsParser} : null
+  })
+})
+
+const mixedHTML = LRLanguage.define({
+  parser: mixedHTMLParser
+})
+
+const tagOptions = [
+  "constructor", "deprecated", "link", "param", "returns", "type"
+].map(tag => ({label: "@" + tag, type: "keyword"}))
+
+function completeJSDoc(context: CompletionContext) {
+  let nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1)
+  if (nodeBefore.name !== "BlockComment" ||
+      context.state.sliceDoc(nodeBefore.from, nodeBefore.from + 3) !== "/**")
+    return null
+  let textBefore = context.state.sliceDoc(nodeBefore.from, context.pos)
+  let tagBefore = /@\w*$/.exec(textBefore)
+  if (!tagBefore && !context.explicit) return null
+  return {
+    from: tagBefore ? nodeBefore.from + tagBefore.index : context.pos,
+    options: tagOptions,
+    validFor: /^(@\w*)?$/
+  }
+}
+
+const jsDocCompletions = javascriptLanguage.data.of({
+  autocomplete: completeJSDoc,
+  
+})
 
 const config = {
   parserOptions: {
@@ -42,6 +91,27 @@ const config = {
     
   }
 };
+
+// {
+//   "compilerOptions": {
+//     "baseUrl": ".",
+//     "paths": {
+//       "$lib/*": [
+//         "./src/lib/*"
+//       ]
+//     },
+//     "allowJs": true,
+//     "checkJs": true,
+//     "esModuleInterop": true,
+//     "forceConsistentCasingInFileNames": true,
+//     "resolveJsonModule": true,
+//     "skipLibCheck": true,
+//     "sourceMap": true,
+//     "strict": true,
+//     "target": "es2019",
+//     "moduleResolution": "node"
+//   }
+// }
 
 
 const myTheme = createTheme({
@@ -96,14 +166,6 @@ const yDoc = new Y.Doc();
 const yt = yDoc.getText('codemirror');
 
 
-const languageMode = {
-  java: java(),
-  javascript: javascript({jsx: true}),
-  python: python(),
-}
-
-
-
 const javascriptKeywords = [
   'abstract', 'arguments', 'await', 'boolean',
   'break', 'byte', 'case', 'catch',
@@ -148,9 +210,7 @@ const pythonKeywords = [
   'True', 'try', 'while', 'with',
   'yield'
 ];
-// view.dispatch(
-  //   insertCompletionText(view.state, tagText, from, to),
-  // );
+
 
 const replaceTagText = (view: EditorView, tagText: string, from: number, to: number) => {  
   
@@ -167,15 +227,13 @@ const replaceTagText = (view: EditorView, tagText: string, from: number, to: num
 
 
 const completions = [
-  ...javascriptKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "JavaScript keyword" })),
-  ...javaKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Java keyword" })),
-  ...pythonKeywords.map((keyword) => ({ label: keyword, type: "keyword", info: "Python keyword" })),
-  { label : "import", type: "keyword", info: "import"},
+  ...javascriptKeywords.map((keyword) => ({ label: keyword, type: "keyword"})),
+  ...javaKeywords.map((keyword) => ({ label: keyword, type: "keyword"})),
+  ...pythonKeywords.map((keyword) => ({ label: keyword, type: "keyword"})),
+  { label : "import", type: "keyword", },
   { label : 'doc', type: "keyword", info: "html generator",
   apply: (view:EditorView, _: Completion, from: number, to: number) =>
-  replaceTagText(view, `
-  
-  <html lang="en">
+  replaceTagText(view, `<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -185,6 +243,18 @@ const completions = [
     
   </body>
   </html>`, from, to)},
+  { label: 'rfc', type: "keyword", info: "react functional component",
+    apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, `import React, {useState} from 'react'
+
+export default function App () {
+  const [state, setState] = useState(false);
+  return (
+    <div>
+      <p>hello world</p>
+    </div>
+  )
+}
+`, from, to)},
   { label: "className", type: "attributeName", info: "HTML class attribute", detail: 'detail...',icon: false,
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, 'className={}', from, to)},
   { label: "span", type: "tagName", info:'html tag' ,
@@ -419,10 +489,11 @@ const completions = [
   { label: "svg", type: "tagName", info: "HTML svg tag",
     apply: (view:EditorView, _: Completion, from: number, to: number) => replaceTagText(view, '<svg></svg>', from, to)    },
 ];
-// { label: "jaehwan", type: "constant", info: "으으 방구쟁이" },
-//   { label: "password", type: "variable" }
+
 function myCompletions(context: CompletionContext) {
-  let before = context.matchBefore(/\w+/);
+  let before = context.matchBefore(/\w*/);
+  // let nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1);
+  // console.log(nodeBefore.name); // JSXText
   // If completion wasn't explicitly started and there
   // is no word before the cursor, don't open completions.
   if (!context.explicit && !before) return null;
@@ -430,9 +501,21 @@ function myCompletions(context: CompletionContext) {
     from: before ? before.from : context.pos,
     options: completions,
     validFor: /^\w*$/,
+    autocomplete: jsDocCompletions
     
   }
 }
+
+
+const languageMode = {
+  java: java(),
+  javascript: javascript({
+    jsx: true,
+    typescript: true,
+  }),
+  python: python(),
+}
+
 
 function App() {
   // const [editorSettings, setEditorSettings] = useState(EDITOR_SETTINGS);
@@ -477,8 +560,6 @@ function App() {
     // setYText(yText);
     yText.observe((event, transaction) => {
       const text = yText.toString();
-
-      // console.log(event,transaction,yText);
     })
     provider.current.awareness.setLocalStateField('user', {
       name: '항구를떠도는철새' + Math.floor(Math.random() * 100),
@@ -492,7 +573,7 @@ function App() {
     }},[provider,yText])
 
   
-
+    
   return(
   <>
   <nav className="fixed w-full h-14 bg-slate-950 z-10 flex items-center px-4 top-0">
@@ -570,23 +651,37 @@ function App() {
             autocompletion: true,
             
           }}
-          extensions={[autocompletion({ override: [ myCompletions ] }),
+          extensions={[
+            lineNumbers(),
+            EditorState.allowMultipleSelections.of(true),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            keymap.of([
+              ...closeBracketsKeymap,
+              ...defaultKeymap,
+              ...searchKeymap,
+              ...historyKeymap,
+              ...foldKeymap,
+              ...completionKeymap,
+              ...lintKeymap,
+            ]),
+            lintGutter(),
+            autocompletion({
+              override: [ myCompletions ],  
+            }),
             basicSetup({
               completionKeymap: true,
               foldGutter: true,
             }),
-            autoCloseTags,
             yCollab(yText, provider.current.awareness, { undoManager }),
-            languageModeState,
-            lintGutter(),
-            linter(esLint(new eslint.Linter(),config)),
+            linter(esLint(new eslint.Linter(), config)),
             EditorView.theme({
-              "&": { fontSize: `${fontSize}px`
-            },
-              
+              "&": {
+                fontSize: `${fontSize}px`
+              },  
             }),
-            ]}
-
+            autoCloseTags,
+            languageModeState,
+          ]}
           />
           : <div>로딩중</div>
         }
